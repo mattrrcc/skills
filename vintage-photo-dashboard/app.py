@@ -9,7 +9,8 @@ from pathlib import Path
 from flask import Flask, render_template, request, jsonify, Response, stream_with_context
 from flask_cors import CORS
 from PIL import Image
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -35,31 +36,31 @@ DEFAULT_MODEL = "gemini-2.0-flash-exp"
 VINTAGE_STYLES = {
     "polaroid": {
         "name": "Polaroid Instant",
-        "prompt": "You are a professional 90s Polaroid instant photography expert. Analyze this photo and describe in vivid detail how it would look as a vintage Polaroid instant photograph from the early 1990s: slightly overexposed, warm yellowish tones, soft focus edges, characteristic Polaroid color shifts with slightly washed-out blues and boosted warm tones, subtle vignetting, that distinctive Polaroid film border look. Describe the mood, the nostalgic feeling, and give 5 specific vintage editing tips to recreate this look. Format as JSON: {\"style_name\": \"Polaroid Instant\", \"mood\": \"...\", \"color_palette\": [...], \"characteristics\": [...], \"editing_tips\": [...], \"era\": \"Early 1990s\", \"film_type\": \"Polaroid 600\"}",
+        "prompt": 'You are a professional 90s Polaroid instant photography expert. Analyze this photo and describe in vivid detail how it would look as a vintage Polaroid instant photograph from the early 1990s: slightly overexposed, warm yellowish tones, soft focus edges, characteristic Polaroid color shifts with slightly washed-out blues and boosted warm tones, subtle vignetting, that distinctive Polaroid film border look. Describe the mood, the nostalgic feeling, and give 5 specific vintage editing tips to recreate this look. Format as JSON: {"style_name": "Polaroid Instant", "mood": "...", "color_palette": [...], "characteristics": [...], "editing_tips": [...], "era": "Early 1990s", "film_type": "Polaroid 600"}',
         "icon": "📷",
         "color": "#F4D03F"
     },
     "film_grain": {
         "name": "35mm Film Grain",
-        "prompt": "You are a 90s analog photography darkroom expert. Analyze this photo and describe how it would look shot on Kodak Gold 200 or Fuji Superia 400 film from 1992-1998: heavy film grain especially in shadows, slightly desaturated with a green-yellow cast, slightly underexposed with crushed blacks, authentic film grain texture, chromatic aberration at edges, light leaks possibility. Describe the atmosphere and give 5 specific darkroom techniques. Format as JSON: {\"style_name\": \"35mm Film Grain\", \"mood\": \"...\", \"color_palette\": [...], \"characteristics\": [...], \"editing_tips\": [...], \"era\": \"Mid 1990s\", \"film_type\": \"Kodak Gold 200\"}",
+        "prompt": 'You are a 90s analog photography darkroom expert. Analyze this photo and describe how it would look shot on Kodak Gold 200 or Fuji Superia 400 film from 1992-1998: heavy film grain especially in shadows, slightly desaturated with a green-yellow cast, slightly underexposed with crushed blacks, authentic film grain texture, chromatic aberration at edges, light leaks possibility. Describe the atmosphere and give 5 specific darkroom techniques. Format as JSON: {"style_name": "35mm Film Grain", "mood": "...", "color_palette": [...], "characteristics": [...], "editing_tips": [...], "era": "Mid 1990s", "film_type": "Kodak Gold 200"}',
         "icon": "🎞️",
         "color": "#E67E22"
     },
     "vhs_aesthetic": {
         "name": "VHS Aesthetic",
-        "prompt": "You are a 90s VHS video and photography culture expert. Analyze this photo and describe how it would look if captured via VHS camcorder from 1993-1997 then printed: scan lines, color bleeding, slightly saturated but muddy colors, tracking artifacts, date/time stamp overlay style, that distinctive VHS color palette with boosted reds and slightly blurry quality. Give 5 tips for recreating this look digitally. Format as JSON: {\"style_name\": \"VHS Aesthetic\", \"mood\": \"...\", \"color_palette\": [...], \"characteristics\": [...], \"editing_tips\": [...], \"era\": \"Early-Mid 1990s\", \"film_type\": \"VHS Camcorder\"}",
+        "prompt": 'You are a 90s VHS video and photography culture expert. Analyze this photo and describe how it would look if captured via VHS camcorder from 1993-1997 then printed: scan lines, color bleeding, slightly saturated but muddy colors, tracking artifacts, date/time stamp overlay style, that distinctive VHS color palette with boosted reds and slightly blurry quality. Give 5 tips for recreating this look digitally. Format as JSON: {"style_name": "VHS Aesthetic", "mood": "...", "color_palette": [...], "characteristics": [...], "editing_tips": [...], "era": "Early-Mid 1990s", "film_type": "VHS Camcorder"}',
         "icon": "📼",
         "color": "#8E44AD"
     },
     "disposable_camera": {
         "name": "Disposable Camera",
-        "prompt": "You are a 90s disposable camera and casual photography expert. Analyze this photo and describe how it would look taken on a Kodak FunSaver or Fuji QuickSnap disposable camera from 1994-1999: harsh built-in flash causing red-eye and flat lighting, slight motion blur, colors that are slightly off especially greens and blues, that authentic 'party photo' quality with genuine imperfections. Give 5 specific techniques to recreate this authentic look. Format as JSON: {\"style_name\": \"Disposable Camera\", \"mood\": \"...\", \"color_palette\": [...], \"characteristics\": [...], \"editing_tips\": [...], \"era\": \"Late 1990s\", \"film_type\": \"Kodak FunSaver\"}",
+        "prompt": 'You are a 90s disposable camera and casual photography expert. Analyze this photo and describe how it would look taken on a Kodak FunSaver or Fuji QuickSnap disposable camera from 1994-1999: harsh built-in flash causing red-eye and flat lighting, slight motion blur, colors that are slightly off especially greens and blues, that authentic party photo quality with genuine imperfections. Give 5 specific techniques to recreate this authentic look. Format as JSON: {"style_name": "Disposable Camera", "mood": "...", "color_palette": [...], "characteristics": [...], "editing_tips": [...], "era": "Late 1990s", "film_type": "Kodak FunSaver"}',
         "icon": "📸",
         "color": "#27AE60"
     },
     "slide_film": {
         "name": "Slide/Reversal Film",
-        "prompt": "You are a 90s professional slide film photography expert. Analyze this photo and describe how it would look shot on Kodachrome 64 or Ektachrome 100 slide film from 1990-1995: rich saturated colors especially reds and blues, very sharp and detailed, high contrast with deep shadows, that iconic Kodachrome warmth and richness, slight color shift toward reds in skin tones. Give 5 professional techniques for recreating this prestigious look. Format as JSON: {\"style_name\": \"Slide/Reversal Film\", \"mood\": \"...\", \"color_palette\": [...], \"characteristics\": [...], \"editing_tips\": [...], \"era\": \"Early 1990s\", \"film_type\": \"Kodachrome 64\"}",
+        "prompt": 'You are a 90s professional slide film photography expert. Analyze this photo and describe how it would look shot on Kodachrome 64 or Ektachrome 100 slide film from 1990-1995: rich saturated colors especially reds and blues, very sharp and detailed, high contrast with deep shadows, that iconic Kodachrome warmth and richness, slight color shift toward reds in skin tones. Give 5 professional techniques for recreating this prestigious look. Format as JSON: {"style_name": "Slide/Reversal Film", "mood": "...", "color_palette": [...], "characteristics": [...], "editing_tips": [...], "era": "Early 1990s", "film_type": "Kodachrome 64"}',
         "icon": "🎨",
         "color": "#C0392B"
     }
@@ -76,14 +77,12 @@ def send_sse_event(client_id: str, event_type: str, data: dict):
 
 def process_image_with_gemini(client_id: str, image_data: bytes, style_key: str, api_key: str, model_id: str = DEFAULT_MODEL):
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(model_id)
-
+        client = genai.Client(api_key=api_key)
         style = VINTAGE_STYLES[style_key]
 
         send_sse_event(client_id, "progress", {
             "stage": "analyzing",
-            "message": f"Loading your photo into the darkroom...",
+            "message": "Loading your photo into the darkroom...",
             "progress": 15
         })
         time.sleep(0.5)
@@ -92,13 +91,11 @@ def process_image_with_gemini(client_id: str, image_data: bytes, style_key: str,
         if img.mode == "RGBA":
             img = img.convert("RGB")
 
-        max_size = (1024, 1024)
-        img.thumbnail(max_size, Image.Resampling.LANCZOS)
+        img.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
 
         img_buffer = io.BytesIO()
         img.save(img_buffer, format="JPEG", quality=85)
-        img_buffer.seek(0)
-        img_bytes = img_buffer.read()
+        img_bytes = img_buffer.getvalue()
 
         send_sse_event(client_id, "progress", {
             "stage": "processing",
@@ -106,20 +103,19 @@ def process_image_with_gemini(client_id: str, image_data: bytes, style_key: str,
             "progress": 40
         })
 
-        img_part = {
-            "mime_type": "image/jpeg",
-            "data": base64.b64encode(img_bytes).decode()
-        }
-
         send_sse_event(client_id, "progress", {
             "stage": "generating",
             "message": "Developing in the vintage darkroom...",
             "progress": 65
         })
 
-        response = model.generate_content(
-            [style["prompt"], img_part],
-            generation_config=genai.types.GenerationConfig(
+        response = client.models.generate_content(
+            model=model_id,
+            contents=[
+                types.Part.from_bytes(data=img_bytes, mime_type="image/jpeg"),
+                types.Part.from_text(text=style["prompt"]),
+            ],
+            config=types.GenerateContentConfig(
                 temperature=0.8,
                 max_output_tokens=1024,
             )
@@ -132,7 +128,6 @@ def process_image_with_gemini(client_id: str, image_data: bytes, style_key: str,
         })
 
         result_text = response.text.strip()
-        # Extract JSON from markdown code blocks if present
         if "```json" in result_text:
             result_text = result_text.split("```json")[1].split("```")[0].strip()
         elif "```" in result_text:
@@ -151,7 +146,6 @@ def process_image_with_gemini(client_id: str, image_data: bytes, style_key: str,
                 "film_type": style["name"]
             }
 
-        # Add base64 preview of original
         original_b64 = base64.b64encode(img_bytes).decode()
 
         send_sse_event(client_id, "complete", {
@@ -187,7 +181,6 @@ def stream(client_id: str):
         q: queue.Queue = queue.Queue()
         sse_clients[client_id] = q
 
-        # Send initial connection event
         yield f"event: connected\ndata: {json.dumps({'client_id': client_id})}\n\n"
 
         try:
@@ -229,10 +222,8 @@ def process_photo():
 
     if not api_key:
         return jsonify({"error": "Google AI Studio API key required"}), 400
-
     if style_key not in VINTAGE_STYLES:
         return jsonify({"error": "Invalid style selected"}), 400
-
     if "photo" not in request.files:
         return jsonify({"error": "No photo uploaded"}), 400
 
@@ -259,7 +250,6 @@ def process_photo():
 
 @app.route("/api/analyze-text", methods=["POST"])
 def analyze_text():
-    """Generate a vintage photography style description without an image."""
     data = request.get_json()
     api_key = data.get("api_key", "").strip()
     style_key = data.get("style", "polaroid")
@@ -272,8 +262,7 @@ def analyze_text():
         return jsonify({"error": "API key required"}), 400
 
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(model_id)
+        client = genai.Client(api_key=api_key)
         style = VINTAGE_STYLES[style_key]
 
         prompt = f"""You are a 90s vintage photography expert. Someone wants to recreate a {style['name']} style shot of: "{scene_description}".
@@ -291,7 +280,11 @@ Give them a complete vintage photography guide. Format as JSON:
   "film_type": "{style['name']}"
 }}"""
 
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model=model_id,
+            contents=prompt,
+        )
+
         result_text = response.text.strip()
         if "```json" in result_text:
             result_text = result_text.split("```json")[1].split("```")[0].strip()
