@@ -488,3 +488,9 @@ function showToast(msg, type = 'info') {
 // ===== INIT =====
 showState('welcome');
 updateProcessBtn();
+
+// Show key-ready indicator if pre-filled from server
+if (els.apiKey && els.apiKey.value.length > 10) {
+  els.apiKey.style.borderColor = 'var(--accent-green)';
+  setTimeout(() => { els.apiKey.style.borderColor = ''; }, 2000);
+}

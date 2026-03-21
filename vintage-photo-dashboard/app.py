@@ -172,7 +172,8 @@ def process_image_with_gemini(client_id: str, image_data: bytes, style_key: str,
 
 @app.route("/")
 def index():
-    return render_template("index.html", styles=VINTAGE_STYLES)
+    prefill_key = os.environ.get("GOOGLE_AI_STUDIO_API_KEY", "")
+    return render_template("index.html", styles=VINTAGE_STYLES, prefill_key=prefill_key)
 
 
 @app.route("/api/styles")
