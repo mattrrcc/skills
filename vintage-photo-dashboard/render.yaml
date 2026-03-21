@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: vintageai-studio
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 1 --threads 8 --bind 0.0.0.0:$PORT --timeout 120
+    envVars:
+      - key: GOOGLE_AI_STUDIO_API_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.11.0
