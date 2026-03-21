@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VintageAI Studio — 90s Photography Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=VT323&family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <!-- Grain overlay -->
+  <div class="grain-overlay"></div>
+
+  <!-- Header -->
+  <header class="studio-header">
+    <div class="header-inner">
+      <div class="logo-area">
+        <div class="logo-film">
+          <span class="film-hole"></span>
+          <span class="film-hole"></span>
+        </div>
+        <div class="logo-text">
+          <h1>VintageAI Studio</h1>
+          <span class="logo-sub">Professional 90s Photography Lab</span>
+        </div>
+        <div class="logo-film">
+          <span class="film-hole"></span>
+          <span class="film-hole"></span>
+        </div>
+      </div>
+      <div class="header-meta">
+        <span class="status-led"></span>
+        <span class="status-text">DARKROOM READY</span>
+        <span class="timestamp" id="clock">--:--:--</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Dashboard -->
+  <main class="dashboard">
+
+    <!-- Left Panel: Controls -->
+    <aside class="control-panel">
+      <div class="panel-header">
+        <span class="panel-icon">⚙️</span>
+        <h2>Studio Controls</h2>
+      </div>
+
+      <!-- API Key -->
+      <div class="control-section">
+        <label class="control-label">
+          <span class="label-icon">🔑</span>
+          Google AI Studio API Key
+        </label>
+        <div class="input-group">
+          <input
+            type="password"
+            id="apiKey"
+            class="studio-input"
+            placeholder="AIzaSy..."
+            autocomplete="off"
+          >
+          <button class="btn-icon" id="toggleApiKey" title="Show/hide key">👁</button>
+        </div>
+        <p class="input-hint">Get your free key at <strong>aistudio.google.com</strong></p>
+      </div>
+
+      <!-- Model Selector -->
+      <div class="control-section">
+        <label class="control-label">
+          <span class="label-icon">🤖</span>
+          Gemini Model
+        </label>
+        <select class="model-select" id="modelSelect">
+          <option value="gemini-2.0-flash-exp">⭐ Gemini 2.0 Flash Exp (Best accuracy)</option>
+          <option value="gemini-2.0-flash">Gemini 2.0 Flash (Fast &amp; accurate)</option>
+          <option value="gemini-1.5-pro">Gemini 1.5 Pro (High accuracy)</option>
+          <option value="gemini-1.5-flash">Gemini 1.5 Flash (Balanced)</option>
+        </select>
+        <div class="model-badge">
+          <span>✅</span>
+          <span>Max accuracy recommended for professional use</span>
+        </div>
+      </div>
+
+      <!-- Style Selector -->
+      <div class="control-section">
+        <label class="control-label">
+          <span class="label-icon">🎞️</span>
+          Film Style
+        </label>
+        <div class="style-grid" id="styleGrid">
+          {% for key, style in styles.items() %}
+          <button
+            class="style-card {% if loop.first %}active{% endif %}"
+            data-style="{{ key }}"
+            style="--accent: {{ style.color }}"
+          >
+            <span class="style-icon">{{ style.icon }}</span>
+            <span class="style-name">{{ style.name }}</span>
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Upload Zone -->
+      <div class="control-section">
+        <label class="control-label">
+          <span class="label-icon">📤</span>
+          Load Photo
+        </label>
+        <div class="upload-zone" id="uploadZone">
+          <div class="upload-inner">
+            <div class="upload-icon">📷</div>
+            <p class="upload-text">Drop your photo here</p>
+            <p class="upload-sub">or click to browse</p>
+            <p class="upload-formats">JPG · PNG · WEBP · GIF</p>
+          </div>
+          <input type="file" id="photoInput" accept="image/*" hidden>
+        </div>
+        <div class="photo-preview-area" id="photoPreviewArea" hidden>
+          <img id="photoPreview" alt="Selected photo">
+          <button class="btn-remove" id="removePhoto">✕</button>
+          <span class="photo-name" id="photoName"></span>
+        </div>
+      </div>
+
+      <!-- Process Button -->
+      <button class="btn-process" id="processBtn" disabled>
+        <span class="btn-inner">
+          <span class="btn-icon-left">🔬</span>
+          <span class="btn-label">Develop in Darkroom</span>
+          <span class="btn-arrow">→</span>
+        </span>
+      </button>
+
+      <!-- Text Mode -->
+      <div class="control-section" style="margin-top: 1rem;">
+        <button class="btn-toggle-text" id="toggleTextMode">
+          ✍️ Generate from scene description
+        </button>
+        <div class="text-mode-panel" id="textModePanel" hidden>
+          <textarea
+            id="sceneDescription"
+            class="studio-textarea"
+            placeholder="Describe your scene... e.g. 'Two friends at a beach sunset in summer 1994'"
+            rows="3"
+          ></textarea>
+          <button class="btn-process-text" id="processTextBtn">
+            🎨 Generate Style Guide
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Center: Main Display -->
+    <section class="main-display">
+      <!-- Welcome State -->
+      <div class="welcome-state" id="welcomeState">
+        <div class="welcome-content">
+          <div class="welcome-film-strip">
+            <div class="film-frame">📷</div>
+            <div class="film-frame">🎞️</div>
+            <div class="film-frame">📼</div>
+            <div class="film-frame">📸</div>
+            <div class="film-frame">🎨</div>
+          </div>
+          <h2 class="welcome-title">Welcome to the Darkroom</h2>
+          <p class="welcome-desc">Upload a photo and select a 90s film style to get AI-powered vintage photography analysis, editing tips, and style reconstruction guides — in real time.</p>
+          <div class="welcome-features">
+            <div class="feature-card">
+              <span>🎞️</span>
+              <p>5 authentic 90s film styles</p>
+            </div>
+            <div class="feature-card">
+              <span>⚡</span>
+              <p>Real-time streaming analysis</p>
+            </div>
+            <div class="feature-card">
+              <span>🎨</span>
+              <p>Color palettes & editing tips</p>
+            </div>
+            <div class="feature-card">
+              <span>📐</span>
+              <p>Pro composition guides</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Processing State -->
+      <div class="processing-state" id="processingState" hidden>
+        <div class="darkroom-animation">
+          <div class="red-light"></div>
+          <div class="darkroom-label">DARKROOM IN USE — DO NOT ENTER</div>
+        </div>
+        <div class="progress-container">
+          <div class="progress-track">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div class="progress-info">
+            <span class="progress-stage" id="progressStage">Initializing...</span>
+            <span class="progress-pct" id="progressPct">0%</span>
+          </div>
+        </div>
+        <div class="processing-log" id="processingLog"></div>
+      </div>
+
+      <!-- Results State -->
+      <div class="results-state" id="resultsState" hidden>
+
+        <!-- Photo Display -->
+        <div class="photo-display" id="photoDisplay"></div>
+
+        <!-- Style Badge -->
+        <div class="result-header" id="resultHeader"></div>
+
+        <!-- Main Result Cards -->
+        <div class="result-grid" id="resultGrid"></div>
+
+        <!-- Editing Tips -->
+        <div class="editing-tips-section" id="editingTipsSection"></div>
+
+        <!-- New Session -->
+        <button class="btn-new-session" id="newSessionBtn">
+          🔄 Develop Another Photo
+        </button>
+      </div>
+    </section>
+
+    <!-- Right Panel: History & Stats -->
+    <aside class="history-panel">
+      <div class="panel-header">
+        <span class="panel-icon">📁</span>
+        <h2>Session Lab Log</h2>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-box">
+          <span class="stat-num" id="statPhotos">0</span>
+          <span class="stat-label">Photos</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-num" id="statStyles">0</span>
+          <span class="stat-label">Styles</span>
+        </div>
+      </div>
+
+      <div class="history-list" id="historyList">
+        <div class="history-empty">
+          <span>📂</span>
+          <p>No photos developed yet</p>
+          <p class="history-empty-sub">Your lab log will appear here</p>
+        </div>
+      </div>
+
+      <!-- Quick Style Reference -->
+      <div class="quick-ref">
+        <div class="panel-header" style="margin-bottom: 0.5rem;">
+          <span class="panel-icon">📖</span>
+          <h2>90s Film Guide</h2>
+        </div>
+        <div class="film-guide">
+          <div class="guide-item">
+            <span>📷</span>
+            <div>
+              <strong>Polaroid 600</strong>
+              <p>ASA 600, instant development</p>
+            </div>
+          </div>
+          <div class="guide-item">
+            <span>🎞️</span>
+            <div>
+              <strong>Kodak Gold 200</strong>
+              <p>Fine grain, warm tones</p>
+            </div>
+          </div>
+          <div class="guide-item">
+            <span>📸</span>
+            <div>
+              <strong>Fuji Superia 400</strong>
+              <p>Cool/neutral, sharp</p>
+            </div>
+          </div>
+          <div class="guide-item">
+            <span>🎨</span>
+            <div>
+              <strong>Kodachrome 64</strong>
+              <p>Rich reds, archival quality</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="studio-footer">
+    <span>VintageAI Studio © 1994–2024</span>
+    <span class="footer-sep">|</span>
+    <span>Powered by Google Gemini</span>
+    <span class="footer-sep">|</span>
+    <span>All photos developed with love in the digital darkroom</span>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
