@@ -51,5 +51,15 @@
         "./skills/claude-api"
       ]
     }
+    ,
+    {
+      "name": "ollama",
+      "description": "Launch and configure Ollama to run local LLMs (default: qwen3.5) and integrate with Claude Code or any OpenAI-compatible client",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/ollama"
+      ]
+    }
   ]
 }
