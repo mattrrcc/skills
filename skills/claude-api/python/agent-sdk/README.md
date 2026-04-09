@@ -118,6 +118,21 @@ Permission modes:
 - `"dontAsk"`: Don't prompt (useful for CI/CD)
 - `"bypassPermissions"`: Skip all prompts (requires `allow_dangerously_skip_permissions=True` in options)
 
+```python
+# Bypass all permission prompts — only use in trusted/automated environments
+# (CI/CD pipelines, containers, or scripts where no human is present)
+async for message in query(
+    prompt="Run the full test suite and fix any failures",
+    options=ClaudeAgentOptions(
+        allowed_tools=["Read", "Edit", "Write", "Bash"],
+        permission_mode="bypassPermissions",
+        allow_dangerously_skip_permissions=True
+    )
+):
+    if isinstance(message, ResultMessage):
+        print(message.result)
+```
+
 ---
 
 ## MCP (Model Context Protocol) Support
