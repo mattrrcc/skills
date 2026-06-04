@@ -66,6 +66,21 @@ Permission modes:
 - `"dontAsk"`: Don't prompt (useful for CI/CD)
 - `"bypassPermissions"`: Skip all prompts (requires `allowDangerouslySkipPermissions: true` in options)
 
+```typescript
+// Bypass all permission prompts — only use in trusted/automated environments
+// (CI/CD pipelines, containers, or scripts where no human is present)
+for await (const message of query({
+  prompt: "Run the full test suite and fix any failures",
+  options: {
+    allowedTools: ["Read", "Edit", "Write", "Bash"],
+    permissionMode: "bypassPermissions",
+    allowDangerouslySkipPermissions: true,
+  },
+})) {
+  if ("result" in message) console.log(message.result);
+}
+```
+
 ---
 
 ## MCP (Model Context Protocol) Support
